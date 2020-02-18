@@ -122,7 +122,10 @@ orders_returns$Returned = ifelse(is.na(orders_returns$Returned), 0, 1)
 - Your manager believes that **how long it took the order to ship** would affect whether the customer would return it or not. 
 - He wants you to generate a feature which can measure how long it takes the company to process each order.
 - ***Hint:*** Process.Time = Ship.Date - Order.Date
-orders_returns$Ship.Date= mdy(orders_returns$Order.Date)
+
+orders$Ship.Date= mdy(orders$Ship.Date)
+orders_returns$Process.Time= orders$Ship.Date- orders$Order.Date
+# returns a column in unit of days 
 
 #### Step 3:
 
@@ -131,6 +134,9 @@ orders_returns$Ship.Date= mdy(orders_returns$Order.Date)
 - If it never got returned, we just impute using 0.
 - ***Hint:*** Group by different Product.ID
 
+Product_returned=orders_returns %>% group_by(Product.ID) %>% select(Product.ID,Returned) %>% summarise(num_times_returned=sum(Returned)) 
+
+orders_returns=left_join(orders_returns, Product_returned, by="Product.ID")
 
 ### Problem 5: Fitting Models
 
@@ -142,6 +148,11 @@ orders_returns$Ship.Date= mdy(orders_returns$Order.Date)
 - Do forget to `set.seed()` before the spilt to make your result reproducible.
 - **Note:** We are not looking for the best tuned model in the lab so don't spend too much time on grid search. Focus on model evaluation and the business use case of each model.
 
+# Psudo code: 
+partition data into equal folds, within each fold, appropriate equal proportions of response variable= Returned vs Non Returned  
+
+#Then return  
+classify_model= glm(y=Returned~ , data= )
 
 ### Problem 6: Evaluating Models
 - What is the best metric to evaluate your model. Is accuracy good for this case?
