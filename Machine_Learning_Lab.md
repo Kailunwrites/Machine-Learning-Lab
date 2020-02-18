@@ -36,6 +36,10 @@ We will use Github for team collaboration and it can be broken down into followi
 ### Problem 1: Dataset Import & Cleaning
 Check **"Profit"** and **"Sales"** in the dataset, convert these two columns to numeric type. 
 
+library(dplyr)
+orders=read.csv('Orders.csv')
+orders$Profit <- as.numeric(gsub('[$,]', '', orders$Profit))
+orders$Sales <- as.numeric(gsub('[$,]', '', orders$Sales))
 
 ### Problem 2: Inventory Management
 - Retailers that depend on seasonal shoppers have a particularly challenging job when it comes to inventory management. Your manager is making plans for next year's inventory.
@@ -45,20 +49,61 @@ Check **"Profit"** and **"Sales"** in the dataset, convert these two columns to 
 
 - ***Hint:*** For each order, it has an attribute called `Quantity` that indicates the number of product in the order. If an order contains more than one product, there will be multiple observations of the same order.
 
+library(lubridate)
+orders$Order.Date= mdy(orders$Order.Date)
+
+# extract month from the date 
+orders$month=month(orders$Order.Date)
+
+plot_season= orders %>% group_by(month) %>% summarise(count_orders = sum(Quantity))
+
+plot(plot_season) # from the plot, we observe a clear trend in the increase in quantity of sales as the year progresses from Jan to December. Note that bar plot here works also  
+
+# need to group_by months and categories, within each month 
+plot_season_2= orders %>% group_by(month, Category) %>% summarise(count_orders= sum(Quantity))
+
+ggplot(data = plot_season_2) +
+  geom_bar(aes(x=month, y = count_orders, fill = Category), stat = 'identity', position = 'dodge') +
+  ggtitle('Number of Orders per Month') + 
+  labs(x = 'month', y = 'number of orders') +
+  scale_x_discrete(limits = 1:12)
+
 
 ### Problem 3: Why did customers make returns?
 - Your manager required you to give a brief report (**Plots + Interpretations**) on returned orders.
 
 	1. How much profit did we lose due to returns each year?
+returns= read.csv('Returns.csv')
+orders_returns= left_join(orders, returns, by="Order.ID")
+orders_returns$Returned = ifelse(is.na(orders_returns$Returned), 0, 1)
 
+orders_returns$year=year(orders_returns$Order.Date)
+orders_returns_plot= orders_returns %>% group_by(year,Returned) %>%  summarise(sum(Profit))
 
+ggplot(data = orders_returns_plot) +
+  geom_bar(aes(x=year, y = sum(Profit), fill = Returned), stat = 'identity', position = 'dodge') +
+  ggtitle('Profit of Returns vs Not Returned per Year') + 
+  labs(x = 'year', y = 'Sum of Profit') +
+  scale_x_discrete(limits = 1:12)
+
+# 1. a lot less returned items than kept items 
+# 2. Because of #1, Much more profit comes from kept items than returned items orders_returns
+	
 	2. How many customer returned more than once? more than 5 times?
 
+cust_returns= orders_returns %>% filter(Returned==1) %>% group_by(Customer.ID) %>% summarise(Returned_times=n())
+
+cust_returns_fivetimes= cust_returns %>% filter(Returned_times>5)
 
 	3. Which regions are more likely to return orders?
 
+return_percent_region=orders_returns %>% group_by(Region.x) %>% 
+summarise(Percent_of_Orders_Returned=mean(Returned)*100)
 
 	4. Which categories (sub-categories) of products are more likely to be returned?
+
+return_percent_category=orders_returns %>% group_by(Sub.Category) %>% 
+summarise(Percent_of_Orders_Returned=mean(Returned)*100)
 
 - ***Hint:*** Merge the **Returns** dataframe with the **Orders** dataframe using `Order.ID`.
 
@@ -71,13 +116,13 @@ Now your manager has a basic understanding of why customers returned orders. Nex
 #### Step 1: Create the dependent variable
 - First of all, we need to generate a categorical variable which indicates whether an order has been returned or not.
 - ***Hint:*** the returned orders’ IDs are contained in the dataset “returns”
-
+orders_returns$Returned = ifelse(is.na(orders_returns$Returned), 0, 1)
 
 #### Step 2:
 - Your manager believes that **how long it took the order to ship** would affect whether the customer would return it or not. 
 - He wants you to generate a feature which can measure how long it takes the company to process each order.
 - ***Hint:*** Process.Time = Ship.Date - Order.Date
-
+orders_returns$Ship.Date= mdy(orders_returns$Order.Date)
 
 #### Step 3:
 
