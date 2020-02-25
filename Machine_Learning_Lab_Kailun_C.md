@@ -73,6 +73,7 @@ ggplot(data = plot_season_2) +
 - Your manager required you to give a brief report (**Plots + Interpretations**) on returned orders.
 
 	1. How much profit did we lose due to returns each year?
+	
 returns= read.csv('Returns.csv')
 orders_returns= left_join(orders, returns, by="Order.ID")
 orders_returns$Returned = ifelse(is.na(orders_returns$Returned), 0, 1)
